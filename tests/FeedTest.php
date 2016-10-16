@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class FeedTest extends TestCase
 {
 
-    public $rssUrl = 'https://news.ycombinator.com/rss';
+    public $rssUrl = 'https://gist.githubusercontent.com/peter279k/61d08ebc8d26dc2d46711ce29114cce4/raw/1c52b1812114a87c896f7b76360a7c9c887f31e0/hackernews.xml';
     public $atomUrl = 'https://raw.githubusercontent.com/yongjhih/yongjhih.github.com/master/atom.xml';
     public $dcDateUrl = 'https://gist.githubusercontent.com/ayukawa/c5975851112c54fb536b/raw/72d2c81761a225cd0cb1fb8cb34b3898b5d34297/FeedTest.xml';
     public $noFeedUrl = 'https://github.com/dg/rss-php';
