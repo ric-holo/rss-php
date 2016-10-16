@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class FeedTest extends TestCase
 {
 
-    public $rssUrl = 'http://news.ycombinator.com/rss';
+    public $rssUrl = 'https://news.ycombinator.com/rss';
     public $atomUrl = 'https://raw.githubusercontent.com/yongjhih/yongjhih.github.com/master/atom.xml';
     public $dcDateUrl = 'https://gist.githubusercontent.com/ayukawa/c5975851112c54fb536b/raw/72d2c81761a225cd0cb1fb8cb34b3898b5d34297/FeedTest.xml';
     public $noFeedUrl = 'https://github.com/dg/rss-php';
@@ -18,20 +18,6 @@ final class FeedTest extends TestCase
         $this->assertInstanceOf('\Feed', $rss);
 
         $rss = Feed::load($this->atomUrl);
-
-        $this->assertInstanceOf('\Feed', $rss);
-    }
-
-    public function testLoadRss()
-    {
-        $rss = Feed::loadRss($this->rssUrl);
-
-        $this->assertInstanceOf('\Feed', $rss);
-    }
-
-    public function testLoadAtom()
-    {
-        $rss = Feed::loadAtom($this->atomUrl);
 
         $this->assertInstanceOf('\Feed', $rss);
     }
