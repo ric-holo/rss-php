@@ -9,6 +9,7 @@ final class FeedTest extends TestCase
     public $atomUrl = 'https://raw.githubusercontent.com/yongjhih/yongjhih.github.com/master/atom.xml';
     public $dcDateUrl = 'https://gist.githubusercontent.com/ayukawa/c5975851112c54fb536b/raw/72d2c81761a225cd0cb1fb8cb34b3898b5d34297/FeedTest.xml';
     public $noFeedUrl = 'https://github.com/dg/rss-php';
+    public $authRssUrl = 'http://peter279k.com/auth-rss/';
     
     public function testLoad()
     {
@@ -96,9 +97,41 @@ final class FeedTest extends TestCase
         $this->assertInternalType('array', $feedArr);
     }
 
-    /*public function testAuth()
+    public function testAuthRss()
     {
-        //test the basic auth and digest auth when the RSS url needs to HTTP auth.
+        $this->deleteCacheFiles();
+
+        Feed::$cacheDir = __DIR__;
+        $rss = Feed::loadRss($this->authRssUrl, 'user-testing-get-rss', 'do-rss-unit-testing');
+
+        $this->assertInstanceOf('\Feed', $rss);
+
+        Feed::$cacheDir = __DIR__;
+        $rss = Feed::loadRss($this->authRssUrl, 'user-testing-get-rss', 'do-rss-unit-testing');
+
+        $this->assertInstanceOf('\Feed', $rss);
     }
-    */
+
+    public function testUnAuthorization()
+    {
+        $this->expectException(FeedException::class);
+
+        try {
+            Feed::$cacheDir = null;
+            $rss = Feed::loadRss($this->authRssUrl, 'error-user', 'error-password');
+        } catch (FeedException $e) {
+            throw $e;
+        }
+    }
+
+    public function deleteCacheFiles()
+    {
+        $xmlFiles = scandir(__DIR__);
+        foreach($xmlFiles as $value) {
+            $extendName = pathinfo(__DIR__.'/'.$value);
+            if($extendName['extension'] === 'xml') {
+                @unlink(__DIR__.'/'.$value);
+            }
+        }
+    }
 }

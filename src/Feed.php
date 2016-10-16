@@ -183,12 +183,12 @@ class Feed
 			&& $data = @file_get_contents($cacheFile)
 		) {
 			// ok
+		} elseif (self::$cacheDir && $data = @file_get_contents($cacheFile)) {
+			// ok
 		} elseif ($data = trim(self::httpRequest($url, $user, $pass))) {
 			if (self::$cacheDir) {
 				file_put_contents($cacheFile, $data);
 			}
-		} elseif (self::$cacheDir && $data = @file_get_contents($cacheFile)) {
-			// ok
 		} else {
 			throw new FeedException('Cannot load feed.');
 		}
@@ -209,16 +209,19 @@ class Feed
 	{
 		$client = new Client();
 		$requestOptions = [];
-		$requestOption['verify'] = './cacert.pem';
-		$requestOption['auth'] = [$user, $pass];
+		$requestOptions['verify'] = __DIR__.'/cacert.pem';
+		$result = null;
 		if($user !== NULL && $pass !== NULL) {
 			$requestOptions['auth'] = [$user, $pass];
 		}
-		$response = $client->request('GET', $url, [
-			'verify' => __DIR__.'/cacert.pem',
-		]);
+		try {
+			$response = $client->request('GET', $url, $requestOptions);
+			$result = $response->getBody()->getContents();
+		} catch (ClientException $e) {
+			$result = false;
+		}
 
-		return $response->getBody()->getContents();
+		return $result;
 	}
 
 
