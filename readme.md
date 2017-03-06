@@ -47,7 +47,7 @@ Download Atom feed from URL:
 ```php
 $atom = Feed::loadAtom($url);
 ```
-You can set your own Guzzle instance to the static client property which
+You can set your own Guzzle instance to the static client property
 ```php
 Feed::$client = new GuzzleHttp\Client(['headers' => ['User-Agent' => 'FeedPHP/1.0']]);
 ```
