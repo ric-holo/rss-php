@@ -72,7 +72,6 @@ $stack = HandlerStack::create();
 $stack->push(new CacheMiddleware(), 'cache');
 
 // Initialize the client with the handler option
-$client = 
 Feed::$client = new Client(['handler' => $stack]);
 ```
 
