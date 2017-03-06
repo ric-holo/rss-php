@@ -1,4 +1,6 @@
 <?php
+use Grunjol\Feed\Feed;
+
 header('Content-Type: text/html; charset=utf-8');
 
 if (!ini_get('date.timezone')) {

@@ -1,24 +1,20 @@
 <?php
-
+namespace Grunjol\Feed;
 /**
  * RSS for PHP - small and easy-to-use library for consuming an RSS Feed
  *
- * @copyright  Copyright (c) 2008 David Grudl
+ * @copyright  Copyright (c) 2008 David Grudl, 2017 grunjol
  * @license    New BSD License
- * @version    1.2
+ * @version    1.3
  */
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use Psr\Http\Message\ResponseInterface;
 
 class Feed
 {
 	/** @var int */
-	public static $cacheExpire = '1 day';
-
-	/** @var string */
-	public static $cacheDir;
+	public static $client;
 
 	/** @var SimpleXMLElement */
 	protected $xml;
@@ -27,14 +23,14 @@ class Feed
 	/**
 	 * Loads RSS or Atom feed.
 	 * @param  string
-	 * @param  string
-	 * @param  string
+	 * @param  array  optional guzzle request options
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function load($url, $user = NULL, $pass = NULL)
+	public static function load($url, $options = [])
 	{
-		$xml = self::loadXml($url, $user, $pass);
+		$xml = self::loadXml($url, $options);
+
 		if ($xml->channel) {
 			return self::fromRss($xml);
 		} else {
@@ -46,32 +42,30 @@ class Feed
 	/**
 	 * Loads RSS feed.
 	 * @param  string  RSS feed URL
-	 * @param  string  optional user name
-	 * @param  string  optional password
+	 * @param  array  optional guzzle request options
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function loadRss($url, $user = NULL, $pass = NULL)
+	public static function loadRss($url, $options = [])
 	{
-		return self::fromRss(self::loadXml($url, $user, $pass));
+		return self::fromRss(self::loadXml($url, $options));
 	}
 
 
 	/**
 	 * Loads Atom feed.
 	 * @param  string  Atom feed URL
-	 * @param  string  optional user name
-	 * @param  string  optional password
+	 * @param  array  optional guzzle request options
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function loadAtom($url, $user = NULL, $pass = NULL)
+	public static function loadAtom($url, $options = [])
 	{
-		return self::fromAtom(self::loadXml($url, $user, $pass));
+		return self::fromAtom(self::loadXml($url, $options));
 	}
 
 
-	private static function fromRss(SimpleXMLElement $xml)
+	private static function fromRss(\SimpleXMLElement $xml)
 	{
 		if (!$xml->channel) {
 			throw new FeedException('Invalid feed.');
@@ -96,7 +90,7 @@ class Feed
 	}
 
 
-	private static function fromAtom(SimpleXMLElement $xml)
+	private static function fromAtom(\SimpleXMLElement $xml)
 	{
 		if (!in_array('http://www.w3.org/2005/Atom', $xml->getDocNamespaces(), TRUE)
 			&& !in_array('http://purl.org/atom/ns#', $xml->getDocNamespaces(), TRUE)
@@ -133,7 +127,7 @@ class Feed
 	 */
 	public function __set($name, $value)
 	{
-		throw new Exception("Cannot assign to a read-only property '$name'.");
+		throw new \Exception("Cannot assign to a read-only property '$name'.");
 	}
 
 
@@ -142,7 +136,7 @@ class Feed
 	 * @param  SimpleXMLElement
 	 * @return array
 	 */
-	public function toArray(SimpleXMLElement $xml = NULL)
+	public function toArray(\SimpleXMLElement $xml = NULL)
 	{
 		if ($xml === NULL) {
 			$xml = $this->xml;
@@ -168,52 +162,34 @@ class Feed
 	/**
 	 * Load XML from cache or HTTP.
 	 * @param  string
-	 * @param  string
-	 * @param  string
+	 * @param  array
 	 * @return SimpleXMLElement
 	 * @throws FeedException
 	 */
-	private static function loadXml($url, $user, $pass)
+	private static function loadXml($url, $options)
 	{
-		$e = self::$cacheExpire;
-		$cacheFile = self::$cacheDir . '/feed.' . md5(serialize(func_get_args())) . '.xml';
-
-		if (self::$cacheDir
-			&& (time() - @filemtime($cacheFile) <= (is_string($e) ? strtotime($e) - time() : $e))
-			&& $data = @file_get_contents($cacheFile)
-		) {
-			// ok
-		} elseif (self::$cacheDir && $data = @file_get_contents($cacheFile)) {
-			// ok
-		} elseif ($data = trim(self::httpRequest($url, $user, $pass))) {
-			if (self::$cacheDir) {
-				file_put_contents($cacheFile, $data);
-			}
-		} else {
-			throw new FeedException('Cannot load feed.');
+		if ($data = trim(self::httpRequest($url, $options))) {
+    		return new \SimpleXMLElement($data, LIBXML_NOWARNING | LIBXML_NOERROR);
 		}
 
-		return new SimpleXMLElement($data, LIBXML_NOWARNING | LIBXML_NOERROR);
+		throw new FeedException('Cannot load feed.');
 	}
 
 
 	/**
 	 * Process HTTP request.
 	 * @param  string
-	 * @param  string
-	 * @param  string
+	 * @param  array
 	 * @return string|FALSE
 	 * @throws FeedException
 	 */
-	private static function httpRequest($url, $user, $pass)
+	private static function httpRequest($url, $options)
 	{
-		$client = new Client();
+		$client = static::$client ? static::$client : new Client();
 		$requestOptions = [];
-		$requestOptions['verify'] = __DIR__.'/cacert.pem';
+		$requestOptions['verify'] = __DIR__ . '/cacert.pem';
 		$result = null;
-		if($user !== NULL && $pass !== NULL) {
-			$requestOptions['auth'] = [$user, $pass];
-		}
+		$requestOptions = array_merge($requestOptions, $options);
 		try {
 			$response = $client->request('GET', $url, $requestOptions);
 			$result = $response->getBody()->getContents();
@@ -240,13 +216,4 @@ class Feed
 		}
 	}
 
-}
-
-
-
-/**
- * An exception generated by Feed.
- */
-class FeedException extends Exception
-{
 }

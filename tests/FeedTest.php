@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use Grunjol\Feed\Feed;
+use Grunjol\Feed\FeedException;
 
 final class FeedTest extends TestCase
 {
@@ -10,16 +12,16 @@ final class FeedTest extends TestCase
     public $dcDateUrl = 'https://gist.githubusercontent.com/ayukawa/c5975851112c54fb536b/raw/72d2c81761a225cd0cb1fb8cb34b3898b5d34297/FeedTest.xml';
     public $noFeedUrl = 'https://github.com/dg/rss-php';
     public $authRssUrl = 'http://peter279k.com/auth-rss/';
-    
+
     public function testLoad()
     {
         $rss = Feed::load($this->rssUrl);
 
-        $this->assertInstanceOf('\Feed', $rss);
+        $this->assertInstanceOf('\Grunjol\Feed\Feed', $rss);
 
         $rss = Feed::load($this->atomUrl);
 
-        $this->assertInstanceOf('\Feed', $rss);
+        $this->assertInstanceOf('\Grunjol\Feed\Feed', $rss);
     }
 
     public function testInvalidRss()
@@ -48,14 +50,14 @@ final class FeedTest extends TestCase
     {
         $rss = Feed::loadRss($this->dcDateUrl);
 
-        $this->assertInstanceOf('\Feed', $rss);
+        $this->assertInstanceOf('Grunjol\Feed\Feed', $rss);
     }
 
     public function testGetXml()
     {
         $rss = Feed::loadRss($this->dcDateUrl);
         $objVal = $rss->__get('dc:date');
-        
+
         $this->assertInstanceOf('\SimpleXMLElement', $objVal);
     }
 
@@ -63,7 +65,7 @@ final class FeedTest extends TestCase
     {
         $this->expectException(\Exception::class);
         $rss = Feed::loadRss($this->dcDateUrl);
-        
+
         try {
             $rss->__set('cutomTag', 'customValue');
         } catch (Exception $e) {
@@ -85,17 +87,9 @@ final class FeedTest extends TestCase
 
     public function testAuthRss()
     {
-        $this->deleteCacheFiles();
+        $rss = Feed::loadRss($this->authRssUrl, ['auth' => ['user-testing-get-rss', 'do-rss-unit-testing']]);
 
-        Feed::$cacheDir = __DIR__;
-        $rss = Feed::loadRss($this->authRssUrl, 'user-testing-get-rss', 'do-rss-unit-testing');
-
-        $this->assertInstanceOf('\Feed', $rss);
-
-        Feed::$cacheDir = __DIR__;
-        $rss = Feed::loadRss($this->authRssUrl, 'user-testing-get-rss', 'do-rss-unit-testing');
-
-        $this->assertInstanceOf('\Feed', $rss);
+        $this->assertInstanceOf('\Grunjol\Feed\Feed', $rss);
     }
 
     public function testUnAuthorization()
@@ -103,21 +97,9 @@ final class FeedTest extends TestCase
         $this->expectException(FeedException::class);
 
         try {
-            Feed::$cacheDir = null;
-            $rss = Feed::loadRss($this->authRssUrl, 'error-user', 'error-password');
+            $rss = Feed::loadRss($this->authRssUrl, ['auth' => ['error-user', 'error-password']]);
         } catch (FeedException $e) {
             throw $e;
-        }
-    }
-
-    public function deleteCacheFiles()
-    {
-        $xmlFiles = scandir(__DIR__);
-        foreach($xmlFiles as $value) {
-            $extendName = pathinfo(__DIR__.'/'.$value);
-            if($extendName['extension'] === 'xml') {
-                @unlink(__DIR__.'/'.$value);
-            }
         }
     }
 }
