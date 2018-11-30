@@ -81,7 +81,8 @@ class Feed
 			if (isset($item->{'dc:date'})) {
 				$item->timestamp = strtotime($item->{'dc:date'});
 			} elseif (isset($item->pubDate)) {
-				$item->timestamp = strtotime($item->pubDate);
+				$clean_date = str_replace('Pubdate:','',$item->pubDate);
+				$item->timestamp = strtotime($clean_date);
 			}
 		}
 		$feed = new self;
