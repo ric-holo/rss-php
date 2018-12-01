@@ -84,6 +84,9 @@ class Feed
 				$clean_date = str_replace('Pubdate:','',$item->pubDate);
 				$item->timestamp = strtotime($clean_date);
 			}
+			if(isset($item->abstract) && ! isset($item->description)){
+				$item->description = $item->abstract;
+			}
 		}
 		$feed = new self;
 		$feed->xml = $xml->channel;
