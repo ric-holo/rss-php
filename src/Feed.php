@@ -8,14 +8,8 @@ namespace Grunjol\Feed;
  * @version    1.3
  */
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-
 class Feed
 {
-	/** @var int */
-	public static $client;
-
 	/** @var SimpleXMLElement */
 	protected $xml;
 
@@ -23,13 +17,14 @@ class Feed
 	/**
 	 * Loads RSS or Atom feed.
 	 * @param  string
-	 * @param  array  optional guzzle request options
+	 * @param  string
+	 * @param  string
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function load($url, $options = [])
+	public static function load($url, $user = NULL, $pass = NULL)
 	{
-		$xml = self::loadXml($url, $options);
+		$xml = self::loadXml($url, $url, $pass);
 
 		if ($xml->channel) {
 			return self::fromRss($xml);
@@ -42,26 +37,28 @@ class Feed
 	/**
 	 * Loads RSS feed.
 	 * @param  string  RSS feed URL
-	 * @param  array  optional guzzle request options
+	 * @param  string
+	 * @param  string
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function loadRss($url, $options = [])
+	public static function loadRss($url, $user = NULL, $pass = NULL)
 	{
-		return self::fromRss(self::loadXml($url, $options));
+		return self::fromRss(self::loadXml($url, $user, $pass));
 	}
 
 
 	/**
 	 * Loads Atom feed.
 	 * @param  string  Atom feed URL
-	 * @param  array  optional guzzle request options
+	 * @param  string
+	 * @param  string
 	 * @return Feed
 	 * @throws FeedException
 	 */
-	public static function loadAtom($url, $options = [])
+	public static function loadAtom($url, $user = NULL, $pass = NULL)
 	{
-		return self::fromAtom(self::loadXml($url, $options));
+		return self::fromAtom(self::loadXml($url, $user, $pass));
 	}
 
 
@@ -170,9 +167,9 @@ class Feed
 	 * @return SimpleXMLElement
 	 * @throws FeedException
 	 */
-	private static function loadXml($url, $options)
+	private static function loadXml($url, $user, $pass)
 	{
-		if ($data = trim(self::httpRequest($url, $options))) {
+		if ($data = trim(self::httpRequest($url, $user, $pass))) {
     		return new \SimpleXMLElement($data, LIBXML_NOWARNING | LIBXML_NOERROR);
 		}
 
@@ -187,21 +184,27 @@ class Feed
 	 * @return string|FALSE
 	 * @throws FeedException
 	 */
-	private static function httpRequest($url, $options)
+	private static function httpRequest($url, $user, $pass)
 	{
-		$client = static::$client ? static::$client : new Client();
-		$requestOptions = [];
-		$requestOptions['verify'] = __DIR__ . '/cacert.pem';
-		$result = null;
-		$requestOptions = array_merge($requestOptions, $options);
-		try {
-			$response = $client->request('GET', $url, $requestOptions);
-			$result = $response->getBody()->getContents();
-		} catch (ClientException $e) {
-			$result = false;
+		if (extension_loaded('curl')) {
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_URL, $url);
+			curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Safari/605.1.15');
+			if ($user !== NULL || $pass !== NULL) {
+				curl_setopt($curl, CURLOPT_USERPWD, "$user:$pass");
+			}
+			curl_setopt($curl, CURLOPT_HEADER, FALSE);
+			curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+			curl_setopt($curl, CURLOPT_ENCODING , '');
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE); // no echo, just return result
+			
+			$result = curl_exec($curl);
+			return curl_errno($curl) === 0 && curl_getinfo($curl, CURLINFO_HTTP_CODE) === 200
+				? $result
+				: FALSE;
+		} else {
+			throw new FeedException('PHP extension CURL is not loaded.');
 		}
-
-		return $result;
 	}
 
 
